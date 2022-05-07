@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/oitel/tubelas/hub"
 )
 
 const (
@@ -44,7 +45,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	ticker := time.NewTicker(pingPeriod)
 	defer ticker.Stop()
 
-	msgs := make(chan []byte)
+	h := hub.GlobalInstance()
+	cl := h.Register()
 
 	go func() {
 		for {
@@ -53,16 +55,16 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					log.Println("conn.ReadMessage: ", err)
 				}
-				close(msgs)
+				h.Unregister(cl)
 				return
 			}
-			msgs <- msg
+			cl.Publish(msg)
 		}
 	}()
 
 	for {
 		select {
-		case msg, ok := <-msgs:
+		case msg, ok := <-cl.Incoming():
 			if !ok {
 				conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
