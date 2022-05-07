@@ -6,13 +6,20 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oitel/tubelas/web"
+	"github.com/spf13/viper"
 )
 
 func main() {
+	if err := loadConfig(); err != nil {
+		log.Fatal("loadConfig: ", err)
+	}
+
+	addr := viper.GetString("listen")
+
 	r := chi.NewRouter()
 	r.Route("/", web.Route)
 
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	if err := http.ListenAndServe(addr, r); err != nil {
 		log.Fatal("http.ListenAndServe: ", err)
 	}
 }
