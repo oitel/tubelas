@@ -50,6 +50,12 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	h := hub.GlobalInstance()
 	cl := h.Register()
+	defer func() {
+		h.Unregister(cl)
+		for range cl.Incoming() {
+			//
+		}
+	}()
 
 	go func() {
 		for {
