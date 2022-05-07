@@ -1,9 +1,12 @@
 package db
 
 import (
+	"embed"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/oitel/tubelas/message"
+	"github.com/pressly/goose/v3"
 )
 
 type impl struct {
@@ -15,6 +18,9 @@ type impl struct {
 func newStorage() Storage {
 	return &impl{}
 }
+
+//go:embed migrations/*.sql
+var migrations embed.FS
 
 func (s *impl) Open(dbstring string) error {
 	var err error
@@ -47,6 +53,12 @@ func (s *impl) Open(dbstring string) error {
 		) RETURNING id
 	`)
 	if err != nil {
+		return err
+	}
+
+	// migrate database
+	goose.SetBaseFS(migrations)
+	if err := goose.Up(s.db.DB, "migrations"); err != nil {
 		return err
 	}
 

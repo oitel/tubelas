@@ -19,5 +19,7 @@
 
 !Makefile
 
+!db/migrations/*.sql
+
 # ...even if they are in subdirectories
 !*/

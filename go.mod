@@ -7,8 +7,11 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.5
+	github.com/pressly/goose/v3 v3.5.3
 	github.com/spf13/viper v1.11.0
 )
+
+require github.com/pkg/errors v0.9.1 // indirect
 
 require (
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
