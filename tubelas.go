@@ -23,6 +23,7 @@ func main() {
 	if err := s.Open(dbstring); err != nil {
 		log.Fatal("db.Storage.Open: ", err)
 	}
+	defer s.Close()
 
 	h := hub.GlobalInstance()
 	go h.Run()
