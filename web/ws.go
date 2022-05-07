@@ -1,9 +1,12 @@
 package web
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gorilla/websocket"
 	"github.com/oitel/tubelas/hub"
@@ -58,7 +61,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 				h.Unregister(cl)
 				return
 			}
-			cl.Publish(msg)
+
+			text := strings.ToValidUTF8(string(msg), string(unicode.ReplacementChar))
+			cl.Publish(text)
 		}
 	}()
 
@@ -70,7 +75,13 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-			if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+
+			b, err := json.Marshal(msg)
+			if err != nil {
+				log.Println("json.Marshal: ", err)
+				continue
+			}
+			if err := conn.WriteMessage(websocket.TextMessage, b); err != nil {
 				log.Println("conn.WriteMessage: ", err)
 				return
 			}

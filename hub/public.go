@@ -1,10 +1,10 @@
 package hub
 
-type Message []byte
+import "github.com/oitel/tubelas/message"
 
 type Client interface {
-	Incoming() chan Message
-	Publish(msg Message)
+	Incoming() chan message.Message
+	Publish(text string)
 }
 
 type Hub interface {

@@ -1,17 +1,24 @@
 package hub
 
+import (
+	"time"
+
+	"github.com/oitel/tubelas/message"
+)
+
 type impl struct {
 	clients    []client
-	messages   chan Message
+	messages   chan message.Message
 	register   chan client
 	unregister chan Client
 	killswitch chan struct{}
+	counter    uint64
 }
 
 func newHub() Hub {
 	return &impl{
 		clients:    []client{},
-		messages:   make(chan Message),
+		messages:   make(chan message.Message),
 		register:   make(chan client),
 		unregister: make(chan Client),
 		killswitch: make(chan struct{}),
@@ -23,6 +30,10 @@ loop:
 	for {
 		select {
 		case msg := <-h.messages:
+			h.counter++
+			msg.ID = h.counter
+			msg.Timestamp = time.Now().UTC().Unix()
+
 			for _, cl := range h.clients {
 				cl.messages <- msg
 			}
@@ -57,7 +68,7 @@ func (h *impl) Stop() error {
 func (h *impl) Register() Client {
 	cl := client{
 		hub:      h,
-		messages: make(chan Message),
+		messages: make(chan message.Message),
 	}
 	h.register <- cl
 	return cl
