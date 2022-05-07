@@ -1,8 +1,10 @@
 package hub
 
 import (
+	"log"
 	"time"
 
+	"github.com/oitel/tubelas/db"
 	"github.com/oitel/tubelas/message"
 )
 
@@ -12,7 +14,7 @@ type impl struct {
 	register   chan client
 	unregister chan Client
 	killswitch chan struct{}
-	counter    uint64
+	storage    db.Storage
 }
 
 func newHub() Hub {
@@ -22,6 +24,7 @@ func newHub() Hub {
 		register:   make(chan client),
 		unregister: make(chan Client),
 		killswitch: make(chan struct{}),
+		storage:    db.GlobalInstance(), // FIXME: proper dependency injection
 	}
 }
 
@@ -30,9 +33,12 @@ loop:
 	for {
 		select {
 		case msg := <-h.messages:
-			h.counter++
-			msg.ID = h.counter
 			msg.Timestamp = time.Now().UTC().Unix()
+			var err error
+			if msg, err = h.storage.Store(msg); err != nil {
+				log.Println("db.Storage.Store: ", err)
+				continue
+			}
 
 			for _, cl := range h.clients {
 				cl.messages <- msg

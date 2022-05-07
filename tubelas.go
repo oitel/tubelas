@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/oitel/tubelas/db"
 	"github.com/oitel/tubelas/hub"
 	"github.com/oitel/tubelas/web"
 	"github.com/spf13/viper"
@@ -16,6 +17,12 @@ func main() {
 	}
 
 	addr := viper.GetString("listen")
+	dbstring := viper.GetString("db")
+
+	s := db.GlobalInstance()
+	if err := s.Open(dbstring); err != nil {
+		log.Fatal("db.Storage.Open: ", err)
+	}
 
 	h := hub.GlobalInstance()
 	go h.Run()

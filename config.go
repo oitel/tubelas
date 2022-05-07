@@ -13,6 +13,7 @@ func init() {
 	viper.AddConfigPath(".")
 
 	viper.SetDefault("listen", ":8080")
+	viper.SetDefault("db", "dbname=tubelas")
 }
 
 func loadConfig() error {
