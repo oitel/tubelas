@@ -23,6 +23,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Route("/", web.Route)
 
+	log.Println("Ready to serve.")
 	if err := http.ListenAndServe(addr, r); err != nil {
 		log.Fatal("http.ListenAndServe: ", err)
 	}
