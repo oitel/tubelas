@@ -1,13 +1,17 @@
 package db
 
-import "github.com/oitel/tubelas/message"
+import (
+	"context"
+
+	"github.com/oitel/tubelas/message"
+)
 
 type Storage interface {
-	Open(dbstring string) error
+	Open(ctx context.Context, dbstring string) error
 	Close() error
 
-	Load(maxCount uint) ([]message.Message, error)
-	Store(msg message.Message) (message.Message, error)
+	Load(ctx context.Context, maxCount uint) ([]message.Message, error)
+	Store(ctx context.Context, msg message.Message) (message.Message, error)
 }
 
 func NewStorage() Storage {

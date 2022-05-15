@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"embed"
 
 	"github.com/jmoiron/sqlx"
@@ -22,17 +23,17 @@ func newStorage() Storage {
 //go:embed migrations/*.sql
 var migrations embed.FS
 
-func (s *impl) Open(dbstring string) error {
+func (s *impl) Open(ctx context.Context, dbstring string) error {
 	var err error
 	s.db, err = sqlx.Open("postgres", dbstring)
 	if err != nil {
 		return err
 	}
-	if err = s.db.Ping(); err != nil {
+	if err = s.db.PingContext(ctx); err != nil {
 		return err
 	}
 
-	s.loadStmt, err = s.db.Preparex(`
+	s.loadStmt, err = s.db.PreparexContext(ctx, `
 		SELECT
 			id,
 			ts,
@@ -45,7 +46,7 @@ func (s *impl) Open(dbstring string) error {
 		return err
 	}
 
-	s.storeStmt, err = s.db.Preparex(`
+	s.storeStmt, err = s.db.PreparexContext(ctx, `
 		INSERT INTO messages(
 			ts, text
 		) VALUES (
@@ -69,8 +70,8 @@ func (s *impl) Close() error {
 	return s.db.Close()
 }
 
-func (s *impl) Load(maxCount uint) ([]message.Message, error) {
-	rows, err := s.loadStmt.Queryx(maxCount)
+func (s *impl) Load(ctx context.Context, maxCount uint) ([]message.Message, error) {
+	rows, err := s.loadStmt.QueryxContext(ctx, maxCount)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +96,7 @@ func (s *impl) Load(maxCount uint) ([]message.Message, error) {
 	return msgs, nil
 }
 
-func (s *impl) Store(msg message.Message) (message.Message, error) {
-	err := s.storeStmt.Get(&msg.ID, msg.Timestamp, msg.Text)
+func (s *impl) Store(ctx context.Context, msg message.Message) (message.Message, error) {
+	err := s.storeStmt.GetContext(ctx, &msg.ID, msg.Timestamp, msg.Text)
 	return msg, err
 }

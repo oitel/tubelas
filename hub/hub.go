@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -28,14 +29,21 @@ func newHub() Hub {
 	}
 }
 
+const (
+	storeTimeout = 30 * time.Second
+)
+
 func (h *impl) Run() error {
 loop:
 	for {
 		select {
 		case msg := <-h.messages:
 			msg.Timestamp = time.Now().UTC().Unix()
-			var err error
-			if msg, err = h.storage.Store(msg); err != nil {
+
+			ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
+			msg, err := h.storage.Store(ctx, msg)
+			cancel()
+			if err != nil {
 				log.Println("db.Storage.Store: ", err)
 				continue
 			}

@@ -1,14 +1,20 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oitel/tubelas/db"
 	"github.com/oitel/tubelas/hub"
 	"github.com/oitel/tubelas/web"
 	"github.com/spf13/viper"
+)
+
+const (
+	openTimeout = 120 * time.Second
 )
 
 func main() {
@@ -20,8 +26,13 @@ func main() {
 	dbstring := viper.GetString("db")
 
 	s := db.GlobalInstance()
-	if err := s.Open(dbstring); err != nil {
-		log.Fatal("db.Storage.Open: ", err)
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), openTimeout)
+		defer cancel()
+
+		if err := s.Open(ctx, dbstring); err != nil {
+			log.Fatal("db.Storage.Open: ", err)
+		}
 	}
 	defer s.Close()
 

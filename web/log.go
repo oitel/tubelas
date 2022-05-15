@@ -11,8 +11,9 @@ import (
 const maxMessageCount = 10
 
 func logHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	s := db.GlobalInstance()
-	msgs, err := s.Load(maxMessageCount)
+	msgs, err := s.Load(ctx, maxMessageCount)
 	if err != nil {
 		log.Println("db.Storage.Load: ", err)
 		render.Status(r, http.StatusInternalServerError)
