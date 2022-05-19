@@ -2,11 +2,11 @@ package hub
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/oitel/tubelas/db"
 	"github.com/oitel/tubelas/message"
+	"github.com/rs/zerolog/log"
 )
 
 type impl struct {
@@ -44,7 +44,9 @@ loop:
 			msg, err := h.storage.Store(ctx, msg)
 			cancel()
 			if err != nil {
-				log.Println("db.Storage.Store: ", err)
+				log.Error().
+					Err(err).
+					Msg("Failed to store message")
 				continue
 			}
 

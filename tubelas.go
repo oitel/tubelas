@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +12,8 @@ import (
 	"github.com/oitel/tubelas/db"
 	"github.com/oitel/tubelas/hub"
 	"github.com/oitel/tubelas/web"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 )
@@ -22,8 +23,13 @@ const (
 )
 
 func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMicro
+
 	if err := loadConfig(); err != nil {
-		log.Fatal("loadConfig: ", err)
+		log.Error().
+			Err(err).
+			Msg("Failed to load config")
+		os.Exit(1)
 	}
 
 	addr := viper.GetString("listen")
@@ -35,7 +41,10 @@ func main() {
 		defer cancel()
 
 		if err := s.Open(ctx, dbstring); err != nil {
-			log.Fatal("db.Storage.Open: ", err)
+			log.Error().
+				Err(err).
+				Msg("Failed to open DB")
+			os.Exit(1)
 		}
 	}
 	defer s.Close()
@@ -52,7 +61,8 @@ func main() {
 		Handler: r,
 	}
 
-	log.Println("Ready to serve.")
+	log.Info().
+		Msg("Ready to serve")
 
 	sigCtx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -71,6 +81,9 @@ func main() {
 		return srv.Shutdown(context.Background())
 	})
 	if err := gr.Wait(); err != http.ErrServerClosed {
-		log.Fatal("errgroup.Group.Wait: ", err)
+		log.Error().
+			Err(err).
+			Msg("Failed to serve HTTP")
+		os.Exit(1)
 	}
 }

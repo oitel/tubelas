@@ -2,7 +2,6 @@ package web
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/oitel/tubelas/hub"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -32,7 +32,9 @@ var upgrader = websocket.Upgrader{
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("upgrader.Upgrade: ", err)
+		log.Error().
+			Err(err).
+			Msg("Failed to upgrade WebSocket connection")
 		return
 	}
 	defer conn.Close()
@@ -62,7 +64,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Println("conn.ReadMessage: ", err)
+					log.Error().
+						Err(err).
+						Msg("Failed to read message")
 				}
 				h.Unregister(cl)
 				return
@@ -84,17 +88,23 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 			b, err := json.Marshal(msg)
 			if err != nil {
-				log.Println("json.Marshal: ", err)
+				log.Error().
+					Err(err).
+					Msg("Failed to serialize to JSON")
 				continue
 			}
 			if err := conn.WriteMessage(websocket.TextMessage, b); err != nil {
-				log.Println("conn.WriteMessage: ", err)
+				log.Error().
+					Err(err).
+					Msg("Failed to write message")
 				return
 			}
 		case <-ticker.C:
 			conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				log.Println("conn.WriteMessage: ", err)
+				log.Error().
+					Err(err).
+					Msg("Failed to send ping")
 				return
 			}
 		}

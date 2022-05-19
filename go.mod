@@ -8,6 +8,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.5
 	github.com/pressly/goose/v3 v3.5.3
+	github.com/rs/zerolog v1.26.1
 	github.com/spf13/viper v1.11.0
 )
 
