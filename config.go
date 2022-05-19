@@ -14,6 +14,7 @@ func init() {
 
 	viper.SetDefault("listen", ":8080")
 	viper.SetDefault("db", "dbname=tubelas")
+	viper.SetDefault("log-format", "cli")
 }
 
 func loadConfig() error {

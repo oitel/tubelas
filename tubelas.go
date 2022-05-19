@@ -34,6 +34,14 @@ func main() {
 
 	addr := viper.GetString("listen")
 	dbstring := viper.GetString("db")
+	logFormat := viper.GetString("log-format")
+
+	if logFormat == "cli" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: time.RFC3339,
+		})
+	}
 
 	s := db.GlobalInstance()
 	{
