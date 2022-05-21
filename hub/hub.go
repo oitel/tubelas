@@ -51,15 +51,16 @@ loop:
 			}
 
 			for _, cl := range h.clients {
-				cl.messages <- msg
+				cl.queue <- msg
 			}
 		case cl := <-h.register:
 			h.clients = append(h.clients, cl)
+			go cl.Listen()
 		case cl := <-h.unregister:
 			for i, hcl := range h.clients {
 				if hcl == cl {
 					h.clients = append(h.clients[:i], h.clients[i+1:]...)
-					close(hcl.messages)
+					hcl.Close()
 					break
 				}
 			}
@@ -71,7 +72,7 @@ loop:
 	}
 
 	for _, hcl := range h.clients {
-		close(hcl.messages)
+		hcl.Close()
 	}
 	return nil
 }
@@ -84,7 +85,8 @@ func (h *impl) Stop() error {
 func (h *impl) Register() Client {
 	cl := client{
 		hub:      h,
-		messages: make(chan message.Message),
+		messages: make(chan message.Message, clientMessageQueueSize),
+		queue:    make(chan message.Message),
 	}
 	h.register <- cl
 	return cl
