@@ -7,25 +7,31 @@ import (
 	"github.com/oitel/tubelas/db"
 	"github.com/oitel/tubelas/message"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/semaphore"
 )
 
 type impl struct {
-	clients    []client
-	messages   chan message.Message
-	register   chan client
-	unregister chan Client
-	killswitch chan struct{}
-	storage    db.Storage
+	clients       []client
+	messages      chan message.Message
+	queue         chan message.Message
+	register      chan client
+	unregister    chan Client
+	killswitch    chan struct{}
+	storage       db.Storage
+	connSemaphore *semaphore.Weighted
 }
 
 func newHub() Hub {
+	storage := db.GlobalInstance() // FIXME: proper dependency injection
 	return &impl{
-		clients:    []client{},
-		messages:   make(chan message.Message),
-		register:   make(chan client),
-		unregister: make(chan Client),
-		killswitch: make(chan struct{}),
-		storage:    db.GlobalInstance(), // FIXME: proper dependency injection
+		clients:       []client{},
+		messages:      make(chan message.Message),
+		queue:         make(chan message.Message),
+		register:      make(chan client),
+		unregister:    make(chan Client),
+		killswitch:    make(chan struct{}),
+		storage:       storage,
+		connSemaphore: semaphore.NewWeighted(storage.MaxConnCount()),
 	}
 }
 
@@ -33,23 +39,37 @@ const (
 	storeTimeout = 30 * time.Second
 )
 
+func (h *impl) Store(msg message.Message) {
+	ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
+	defer cancel()
+
+	if err := h.connSemaphore.Acquire(ctx, 1); err != nil {
+		log.Error().
+			Err(err).
+			Msg("Failed to store message")
+		return
+	}
+	defer h.connSemaphore.Release(1)
+
+	msg.Timestamp = time.Now().UTC().Unix()
+	msg, err := h.storage.Store(ctx, msg)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Msg("Failed to store message")
+		return
+	}
+
+	h.queue <- msg
+}
+
 func (h *impl) Run() error {
 loop:
 	for {
 		select {
 		case msg := <-h.messages:
-			msg.Timestamp = time.Now().UTC().Unix()
-
-			ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
-			msg, err := h.storage.Store(ctx, msg)
-			cancel()
-			if err != nil {
-				log.Error().
-					Err(err).
-					Msg("Failed to store message")
-				continue
-			}
-
+			go h.Store(msg)
+		case msg := <-h.queue:
 			for _, cl := range h.clients {
 				cl.queue <- msg
 			}
@@ -74,6 +94,7 @@ loop:
 	for _, hcl := range h.clients {
 		hcl.Close()
 	}
+	close(h.messages)
 	return nil
 }
 
