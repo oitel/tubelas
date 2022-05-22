@@ -52,6 +52,9 @@ func main() {
 				Msg("Failed to open DB")
 			os.Exit(1)
 		}
+
+		maxConnCount := viper.GetInt64("db.max_conns")
+		s.SetMaxConnCount(maxConnCount)
 	}
 	defer s.Close()
 

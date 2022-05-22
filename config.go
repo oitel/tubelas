@@ -14,6 +14,7 @@ func init() {
 
 	viper.SetDefault("http.listen", ":8080")
 	viper.SetDefault("db.uri", "dbname=tubelas")
+	viper.SetDefault("db.max_conns", 0)
 	viper.SetDefault("log.format", "cli")
 }
 

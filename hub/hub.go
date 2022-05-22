@@ -23,6 +23,10 @@ type impl struct {
 
 func newHub() Hub {
 	storage := db.GlobalInstance() // FIXME: proper dependency injection
+	var connSemaphore *semaphore.Weighted
+	if storage.MaxConnCount() > 0 {
+		connSemaphore = semaphore.NewWeighted(storage.MaxConnCount())
+	}
 	return &impl{
 		clients:       []client{},
 		messages:      make(chan message.Message),
@@ -31,7 +35,7 @@ func newHub() Hub {
 		unregister:    make(chan Client),
 		killswitch:    make(chan struct{}),
 		storage:       storage,
-		connSemaphore: semaphore.NewWeighted(storage.MaxConnCount()),
+		connSemaphore: connSemaphore,
 	}
 }
 
@@ -43,13 +47,15 @@ func (h *impl) Store(msg message.Message) {
 	ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
 	defer cancel()
 
-	if err := h.connSemaphore.Acquire(ctx, 1); err != nil {
-		log.Error().
-			Err(err).
-			Msg("Failed to store message")
-		return
+	if h.connSemaphore != nil {
+		if err := h.connSemaphore.Acquire(ctx, 1); err != nil {
+			log.Error().
+				Err(err).
+				Msg("Failed to store message")
+			return
+		}
+		defer h.connSemaphore.Release(1)
 	}
-	defer h.connSemaphore.Release(1)
 
 	msg.Timestamp = time.Now().UTC().Unix()
 	msg, err := h.storage.Store(ctx, msg)

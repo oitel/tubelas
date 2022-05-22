@@ -14,6 +14,7 @@ type Storage interface {
 	Store(ctx context.Context, msg message.Message) (message.Message, error)
 
 	MaxConnCount() int64
+	SetMaxConnCount(count int64)
 }
 
 func NewStorage() Storage {

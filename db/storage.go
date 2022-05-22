@@ -10,15 +10,11 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
-const (
-	// TODO: move to settings
-	maxConnCount = 64
-)
-
 type impl struct {
-	db        *sqlx.DB
-	loadStmt  *sqlx.Stmt
-	storeStmt *sqlx.Stmt
+	db           *sqlx.DB
+	loadStmt     *sqlx.Stmt
+	storeStmt    *sqlx.Stmt
+	maxConnCount int64
 }
 
 func newStorage() Storage {
@@ -68,8 +64,6 @@ func (s *impl) Open(ctx context.Context, dbstring string) error {
 		return err
 	}
 
-	s.db.SetMaxIdleConns(maxConnCount)
-
 	return nil
 }
 
@@ -109,5 +103,10 @@ func (s *impl) Store(ctx context.Context, msg message.Message) (message.Message,
 }
 
 func (s *impl) MaxConnCount() int64 {
-	return maxConnCount
+	return s.maxConnCount
+}
+
+func (s *impl) SetMaxConnCount(count int64) {
+	s.maxConnCount = count
+	s.db.SetMaxIdleConns(int(count))
 }
