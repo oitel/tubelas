@@ -32,11 +32,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	addr := viper.GetString("listen")
-	dbstring := viper.GetString("db")
-	logFormat := viper.GetString("log-format")
-
-	if logFormat == "cli" {
+	logFormat := viper.GetString("log.format")
+	if logFormat == "plain" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{
 			Out:        os.Stdout,
 			TimeFormat: time.RFC3339,
@@ -48,7 +45,8 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), openTimeout)
 		defer cancel()
 
-		if err := s.Open(ctx, dbstring); err != nil {
+		dbUri := viper.GetString("db.uri")
+		if err := s.Open(ctx, dbUri); err != nil {
 			log.Error().
 				Err(err).
 				Msg("Failed to open DB")
@@ -64,6 +62,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Route("/", web.Route)
 
+	addr := viper.GetString("http.listen")
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: r,
